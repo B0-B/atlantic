@@ -1,0 +1,22 @@
+{
+  "name": "atlantic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/B0-B/atlantic.git"
+  },
+  "author": "B0-B",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/B0-B/atlantic/issues"
+  },
+  "homepage": "https://github.com/B0-B/atlantic#readme",
+  "dependencies": {
+    "crypto": "^1.0.1"
+  }
+}
