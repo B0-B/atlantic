@@ -1,9 +1,9 @@
 // key buffer embedding
+const aes = require('./buffer.js')
 
-var key = function (length=4096) {
+var key = function (master, length=4096) {
     this.length = length;
-    this.aes = require('./buffer.js')
-    this.store()
+    this.store(master)
 }
 
 key.prototype.gen = function () {
@@ -16,12 +16,12 @@ key.prototype.gen = function () {
     return k
 }
 
-key.prototype.store = function () {
-    this.buffer = this.aes.encrypt('['+this.gen().toString()+']')
+key.prototype.store = function (master) {
+    this.buffer = aes.encrypt('['+this.gen().toString()+']', master)
 }
 
-key.prototype.resolve = function () {
-    return eval(this.aes.decrypt(this.buffer))
+key.prototype.resolve = function (master) {
+    return eval(aes.decrypt(this.buffer, master))
 }
 
 module.exports = key;

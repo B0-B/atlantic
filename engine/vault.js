@@ -1,12 +1,15 @@
 // vault for secure key storage
 const key = require('./keygen.js')
 const crypto = require('crypto');
+const fs = require('fs')
 
-var vault = function (keyLength=4096, tanSize=100) {
+var vault = function (keyLength=4096, savePath='./vault.json', tanSize=100) {
     // 
-    this.keyLength = keyLength
-    this.tanSize = tanSize
-    this.list = {}
+    this.keyLength = keyLength;
+    this.list = {};
+    this.savePath = savePath;
+    this.tanSize = tanSize;
+    
 }
 
 vault.prototype.addTan = function (user, tan) {
@@ -20,7 +23,7 @@ vault.prototype.burnKey = function (user, id) {
     this.list[userhash].tan[`${id}`] = null
 }
 
-vault.prototype.createTan = function (user) {
+vault.prototype.createTan = function (user, master) {
     let fingerprint = this.randomHash(),
         userhash = this.hash(user);
     this.list[userhash] = {
@@ -28,13 +31,35 @@ vault.prototype.createTan = function (user) {
         "tan": {}
     }
     for (let id = 0; id < this.tanSize; id++) {
-        this.list[userhash].tan[`${id}`] = new key(this.keyLength)
+        this.list[userhash].tan[`${id}`] = new key(master, this.keyLength)
     }
 } 
+
+vault.prototype.dump = function (masterKey="*", savePath=null) {
+    if (savePath != null) {
+        this.savePath = savePath
+    }
+    fs.writeFileSync(this.savePath, JSON.stringify(this, null, 2) , 'utf-8');
+}
 
 vault.prototype.hash = function (name) {
     // mimick SHA-256 random hex-encoded hash
     return crypto.createHash('sha256').update(name).digest('hex')
+}
+
+vault.prototype.load = function (savePath) {
+    let rawdata = fs.readFileSync(savePath, masterKey="");
+    let json = JSON.parse(rawdata);
+    this.keyLength = json.keyLength;
+    this.list = json.list;
+    this.savePath = savePath;
+    this.tanSize = json.tanSize;
+}
+
+vault.prototype.restoreKey = function (name, id) {
+    let k = new key(this.keyLength)
+    k.buffer = this.list[v.hash(name)]['tan'][`${id}`].buffer
+    return k
 }
 
 vault.prototype.randomHash = function () {
@@ -42,7 +67,12 @@ vault.prototype.randomHash = function () {
     return crypto.randomBytes(32).toString('hex')
 }
 
+
+masterKey ='1Ab123123c23'
 v = new vault()
-v.createTan('Angel')
-console.log(v.list)
-module.exports = vault;
+v.createTan('Angel', masterKey)
+v.dump()
+/*
+v.load('vault.json')
+console.log(v.restoreKey("Angel", 80).resolve())
+module.exports = vault;*/
