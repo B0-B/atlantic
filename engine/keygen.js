@@ -7,11 +7,11 @@ var key = function (master, length=4096) {
 }
 
 key.prototype.gen = function () {
+    // shuffle key
     let k = []
     for (let i = 0; i < this.length; i++) {
         k.push(i)
     }
-    // shuffle key
     k.sort(() => (Math.random() > .5) ? 1 : -1)
     return k
 }

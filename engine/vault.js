@@ -58,7 +58,7 @@ vault.prototype.load = function (savePath) {
 
 vault.prototype.restoreKey = function (name, id) {
     let k = new key(this.keyLength)
-    k.buffer = this.list[v.hash(name)]['tan'][`${id}`].buffer
+    k.buffer = this.list[v.hash(name)]['tan'][`${id}`]['buffer']
     return k
 }
 
@@ -70,9 +70,16 @@ vault.prototype.randomHash = function () {
 
 masterKey ='1Ab123123c23'
 v = new vault()
-v.createTan('Angel', masterKey)
-v.dump()
-/*
-v.load('vault.json')
-console.log(v.restoreKey("Angel", 80).resolve())
-module.exports = vault;*/
+//v.createTan('Angel', masterKey)
+
+
+//v.burnKey('Angel', 1)
+//v.dump()
+v.load('./vault.json')
+//console.log(v)
+//console.log(v.list['0160733d2828347f1bad79c3b29e34894f331ee512a606ac5dbe67fd8399978d'].tan)
+restoredKey = v.restoreKey("Angel", 80)
+//console.log(restoredKey)
+console.log(restoredKey.resolve(masterKey))
+//console.log(restoredKey.resolve(masterKey))
+module.exports = vault;

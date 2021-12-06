@@ -16,7 +16,5 @@
     "url": "https://github.com/B0-B/atlantic/issues"
   },
   "homepage": "https://github.com/B0-B/atlantic#readme",
-  "dependencies": {
-    "crypto": "^1.0.1"
-  }
+  "dependencies": {}
 }
