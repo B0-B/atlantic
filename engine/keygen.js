@@ -21,7 +21,9 @@ key.prototype.store = function (master) {
 }
 
 key.prototype.resolve = function (master) {
-    return eval(aes.decrypt(this.buffer, master))
+    let dec = aes.decrypt(this.buffer, master)
+    console.log('dec3', dec)
+    return eval(dec)
 }
 
 module.exports = key;

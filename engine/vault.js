@@ -1,7 +1,8 @@
 // vault for secure key storage
-const key = require('./keygen.js')
+const key = require('./keygen.js');
 const crypto = require('crypto');
-const fs = require('fs')
+const fs = require('fs');
+const buffer = require('./buffer.js');
 
 var vault = function (keyLength=4096, savePath='./vault.json', tanSize=100) {
     // 
@@ -39,7 +40,7 @@ vault.prototype.dump = function (masterKey="*", savePath=null) {
     if (savePath != null) {
         this.savePath = savePath
     }
-    fs.writeFileSync(this.savePath, JSON.stringify(this, null, 2) , 'utf-8');
+    fs.writeFileSync(this.savePath, JSON.stringify(this) , 'utf-8');
 }
 
 vault.prototype.hash = function (name) {
@@ -48,7 +49,7 @@ vault.prototype.hash = function (name) {
 }
 
 vault.prototype.load = function (savePath) {
-    let rawdata = fs.readFileSync(savePath, masterKey="");
+    let rawdata = fs.readFileSync(savePath, 'utf-8');
     let json = JSON.parse(rawdata);
     this.keyLength = json.keyLength;
     this.list = json.list;
@@ -69,17 +70,17 @@ vault.prototype.randomHash = function () {
 
 
 masterKey ='1Ab123123c23'
-v = new vault()
+v = new vault(10)
 //v.createTan('Angel', masterKey)
-
-
 //v.burnKey('Angel', 1)
 //v.dump()
 v.load('./vault.json')
-//console.log(v)
+console.log(v)
 //console.log(v.list['0160733d2828347f1bad79c3b29e34894f331ee512a606ac5dbe67fd8399978d'].tan)
 restoredKey = v.restoreKey("Angel", 80)
+console.log('buffer', restoredKey.buffer)
+console.log(buffer.decrypt(restoredKey.buffer, masterKey))
 //console.log(restoredKey)
-console.log(restoredKey.resolve(masterKey))
+//console.log(restoredKey.resolve(masterKey))
 //console.log(restoredKey.resolve(masterKey))
 module.exports = vault;
