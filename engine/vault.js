@@ -4,20 +4,39 @@ const crypto = require('crypto');
 const fs = require('fs');
 const buffer = require('./buffer.js');
 
-var vault = function (keyLength=4096, savePath='./vault.json', tanSize=100) {
-    // 
+var vault = function (keyLength=4096, tanSize=100) {
+    this.algorithm = 'aes-256-cbc'
     this.keyLength = keyLength;
+    this.keyPair = {};
     this.list = {};
-    this.savePath = savePath;
+    this.savePath = './vault.json';
     this.tanSize = tanSize;
-    
+    this.testPhrase = 'atlantic'
+    this.testPhraseEncrypted = null
+    this.userhash = ''
 }
 
-vault.prototype.addTan = function (user, tan) {
+vault.prototype.addMasterKey = function (master, masterOld=null) {
+    if (! this.testPhraseEncrypted) {
+        this.testPhraseEncrypted = buffer.encrypt(this.testPhrase, master)
+    } else {
+        if (masterOld != null && this.ident(masterOld)) {
+            this.testPhraseEncrypted = buffer.encrypt(this.testPhrase, master)
+        } else {
+            console.log('wrong credentials.')
+        }
+    }
+}
+
+vault.prototype.addReceivedTan = function (user, tan) {
     // Will add a provided tan to specific user hash. If a tan already exists for this hash, it will be overridden.
     userhash = this.hash(user);
     this.list[userhash] = tan
 } 
+
+vault.prototype.addUser = function (user, master) {
+    this.userhash = this.encrypt(user, master)
+}
 
 vault.prototype.burnKey = function (user, id) {
     let userhash = this.hash(user);
@@ -43,9 +62,63 @@ vault.prototype.dump = function (masterKey="*", savePath=null) {
     fs.writeFileSync(this.savePath, JSON.stringify(this) , 'utf-8');
 }
 
+vault.prototype.generateKeyPair = function (master) {
+    // generate rsa key pair in pem format
+    const keyPair = crypto.generateKeyPair('rsa', {
+        modulusLength: 4096,
+        publicKeyEncoding: {
+          type: 'spki',
+          format: 'pem'
+        },
+        privateKeyEncoding: {
+          type: 'pkcs8',
+          format: 'pem',
+          cipher: this.algorithm,
+          passphrase: master
+        }
+    }, (err, publicKey, privateKey) => {
+        if (err != null) {throw err}
+        this.keyPair = {
+            public: publicKey,
+            private: privateKey
+        }
+    });
+}
+
+vault.prototype.getTanByFingerprint = function (fingerprint) {
+    userhashes = Object.keys(this.list)
+    for (let i = 0; i < userhashes.length; i++) {
+        const userhash = userhashes[i];
+        const fp = this.list[userhash].fingerprint;
+        if (fp == fingerprint) {
+            return {userhash: userhash, tan: this.list[userhash].tan}
+        }
+    }
+    return null
+}
+
+vault.prototype.getTanByName = function (name) {
+    try {
+        return this.list[this.hash(name)].tan
+    } catch (error) {
+        console.log(error)
+        return null
+    }
+}
+
 vault.prototype.hash = function (name) {
     // mimick SHA-256 random hex-encoded hash
     return crypto.createHash('sha256').update(name).digest('hex')
+}
+
+vault.prototype.ident = function (user, master) {
+    try {
+        return buffer.decrypt(this.testPhraseEncrypted, master) == this.testPhrase &&
+            buffer.decrypt(this.userhash, master) == user
+    } catch (error) {
+        //console.log(error)
+        return false
+    }
 }
 
 vault.prototype.load = function (savePath) {
@@ -57,30 +130,15 @@ vault.prototype.load = function (savePath) {
     this.tanSize = json.tanSize;
 }
 
+vault.prototype.randomHash = function () {
+    // mimick SHA-256 random hex-encoded hash
+    return crypto.randomBytes(32).toString('hex')
+}
+
 vault.prototype.restoreKey = function (name, id) {
     let k = new key(this.keyLength)
     k.buffer = this.list[v.hash(name)]['tan'][`${id}`]['buffer']
     return k
 }
 
-vault.prototype.randomHash = function () {
-    // mimick SHA-256 random hex-encoded hash
-    return crypto.randomBytes(32).toString('hex')
-}
-
-
-masterKey ='1Ab123123c23'
-v = new vault(10)
-//v.createTan('Angel', masterKey)
-//v.burnKey('Angel', 1)
-//v.dump()
-v.load('./vault.json')
-console.log(v)
-//console.log(v.list['0160733d2828347f1bad79c3b29e34894f331ee512a606ac5dbe67fd8399978d'].tan)
-restoredKey = v.restoreKey("Angel", 80)
-console.log('buffer', restoredKey.buffer)
-console.log(buffer.decrypt(restoredKey.buffer, masterKey))
-//console.log(restoredKey)
-//console.log(restoredKey.resolve(masterKey))
-//console.log(restoredKey.resolve(masterKey))
 module.exports = vault;
