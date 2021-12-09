@@ -43,6 +43,19 @@ vault.prototype.burnKey = function (user, id) {
     this.list[userhash].tan[`${id}`] = null
 }
 
+vault.prototype.checkMaster = function (master) {
+    try {
+        if (buffer.decrypt(this.testPhraseEncrypted, master) == this.testPhrase) {
+            return true
+        } else {
+            return false
+        }
+    } catch (error) {
+        return false
+    }
+    
+}
+
 vault.prototype.createTan = function (user, master) {
     let fingerprint = this.randomHash(),
         userhash = this.hash(user);

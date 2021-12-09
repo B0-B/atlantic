@@ -27,6 +27,7 @@ var client = function (user, master, vaultPath) {
             console.log('Create new vault ...')
             this.vault.addUser(this.user, master)
             this.vault.addMasterKey(master)
+            this.vault.generateKeyPair(master) // for tan exchange
         } 
     }); 
     
@@ -34,7 +35,7 @@ var client = function (user, master, vaultPath) {
 
 client.prototype.connect = async function (host, port) {
     //
-    
+
 }
 
 client.prototype.send = async function (user, message) {
