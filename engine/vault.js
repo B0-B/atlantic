@@ -40,7 +40,7 @@ vault.prototype.addUser = function (user, master) {
 
 vault.prototype.burnKey = function (user, id) {
     let userhash = this.hash(user);
-    this.list[userhash].tan[`${id}`] = null
+    delete this.list[userhash].tan[`${id}`]
 }
 
 vault.prototype.checkMaster = function (master) {
@@ -53,13 +53,14 @@ vault.prototype.checkMaster = function (master) {
     } catch (error) {
         return false
     }
-    
 }
 
-vault.prototype.createTan = function (user, master) {
+vault.prototype.createTan = function (name, address, master) {
     let fingerprint = this.randomHash(),
-        userhash = this.hash(user);
+        userhash = this.hash(name),
+        addresshash = buffer.encrypt(address, master)
     this.list[userhash] = {
+        "address": addresshash,
         "fingerprint": fingerprint,
         "tan": {}
     }
@@ -119,6 +120,27 @@ vault.prototype.getTanByName = function (name) {
     }
 }
 
+vault.prototype.handshakePackage = function (name, master) {
+    /* Decrypt the list entry and encrypt again with the address.
+    The address is the receivers public key.
+    */
+    let  entry = this.list[this.hash(name)],
+        pkg = {};
+    pub = buffer.decrypt(entry.addresshash,master);
+    pkg.fingerprint = entry.fingerprint;
+    pkg.name = crypto.publicEncrypt(pub,buffer.decrypt(this.userhash,master))
+    pkg.to = pub// public key stays plain
+    pkg.from = crypto.publicEncrypt(pub,buffer.decrypt(this.keyPair.public,master));
+    pkg.tan = entry.tan;
+    tan_keys = Object.keys(pkg.tan);
+    // transcript all keys
+    for (let i = 0; i < tan_keys.length; i++) {
+        let buf = pkg.tan[tan_keys[i]].buffer;
+        pkg.tan[tan_keys[i]].buffer = crypto.publicEncrypt(pub,buffer.decrypt(buf,master));
+    }
+    return pkg
+}
+
 vault.prototype.hash = function (name) {
     // mimick SHA-256 random hex-encoded hash
     return crypto.createHash('sha256').update(name).digest('hex')
@@ -141,6 +163,14 @@ vault.prototype.load = function (savePath) {
     this.list = json.list;
     this.savePath = savePath;
     this.tanSize = json.tanSize;
+}
+
+vault.prototype.nextKey = function (name, master) {
+    let tan = this.getTanByName(name);
+    let nextID = Object.keys(tan)[0];
+    const key_encrypted = this.restoreKey(name, nextID);
+    this.burnKey(name, nextID);
+    return {id: nextID, key: key_encrypted.resolve(master)}
 }
 
 vault.prototype.randomHash = function () {
