@@ -34,8 +34,30 @@ vault.prototype.addReceivedTan = function (user, tan) {
     this.list[userhash] = tan
 } 
 
+vault.prototype.addNewTan = function (pkg, master) {
+    const priv = this.keyPair.private;
+    const user = crypto.publicDecrypt(priv, pkg.name);
+    const address = crypto.publicDecrypt(priv, pkg.from);
+    const fp = crypto.publicDecrypt(priv, pkg.fp);
+    let tan = pkg.tan;
+    // decrypt keys in tan list
+    let tan_keys = Object.keys(tan);
+    for (let i = 0; i < tan_keys.length; i++) {
+        let buf = tan[tan_keys[i]].buffer;
+        tan[tan_keys[i]].buffer = crypto.publicDecrypt(priv,buf);
+    }
+    // finalize package for list
+    this.list[this.hash(user)] = {
+        address: buffer.encrypt(address, master),
+        fingerprint: fp,
+        tan: tan
+    }
+}
+
 vault.prototype.addUser = function (user, master) {
-    this.userhash = this.encrypt(user, master)
+    // add personal user name of this client
+    this.userhash = this.encrypt(user, master);
+    //let prv = buffer.decrypt(entry.addresshash,master);
 }
 
 vault.prototype.burnKey = function (user, id) {

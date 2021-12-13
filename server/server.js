@@ -1,6 +1,6 @@
 const fs = require('fs');
 var path = require('path');
-const express = require('express')
+const express = require('express');
 const bodyParser = require('body-parser');
 
 /*
@@ -71,12 +71,12 @@ node.prototype.build = function () {
     // ---- listener ----
     this.server.post('/listen', async function (req, res) {
         const raw = req.body;
-        let stack;
+        let stack = {errors: [], stack: []}
         try {
-            stack = JSON.parse(JSON.stringify(this.stack[raw.address]))
+            stack.stack = JSON.parse(JSON.stringify(this.stack[raw.address]))
             delete this.stack[raw.address]
         } catch (error) {
-            stack = {stack: []}
+            stack.errors.push(error)
         }
         res.send(JSON.stringify(stack))
         console.log(`${msg.to} is up to date.`)

@@ -7,12 +7,17 @@ const atlantic = require('./atlantic.js');
 var path = require('path');
 const fs = require('fs');
 
-var client = function (user, master, vaultPath) {
+var client = function (user, master, vaultPath, host, port) {
 
     // --- general object information ---
+    this.host = host;
+    this.port = port;
     this.user = user;
+    this.kill = false;
     this.keyLength = 1024;
-    this.padLength = 4096
+    this.messages = {};
+    this.padLength = 4096;
+    this.requests = [];
     this.tanSize = 1000;
     this.vaultPath = vaultPath
 
@@ -42,14 +47,46 @@ client.prototype.connect = async function (host, port) {
 
 }
 
+client.prototype.listener = async function () {
+    while (!this.kill) {
+        let pkg = JSON.stringify({address: this.vault.keyPair.public});
+        const response = await fetch(`https://${this.host}:${this.port}`, {method: 'POST', body: pkg});
+        const data = await response.json();
+        if (data.errors.length != 0) {
+            console.log('error', data.errors[0])
+        }
+        for (let i = 0; i < data.stack.length; i++) {
+            const obj = data.stack[i];
+            if ('tan' in obj) {
+                console.log(`received chat request from ${obj.from}`)
+                this.requests.push(obj);
+                //this.vault.addNewTan(obj, master)
+            } else {
+                console.log(`received new message from ${obj.from}`)
+                this.messages[obj.fp] = obj;
+            }
+            
+        }
+        await this.sleep(.5);
+    }
+}
+
 client.prototype.send = async function (name, message) {
     // get next key
-    let key = this.vault.nextKey(name, master)
+    let obj = this.vault.list[this.vault.hash(name)];
+    let key = this.vault.nextKey(name, master);
     let msg = {
         id: key.id,
+        fp: obj.fingerprint,
         payload: this.atlantic.encrypt(message, key.key),
-        to: this.vault.list[this.vault.hash(name)].add
+        to: buffer.decrypt(obj.address, master)
     }
-    
+}
 
+client.prototype.sleep = function (seconds) {
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            resolve(0);
+        }, 1000*seconds);
+    });
 }
