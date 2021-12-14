@@ -91,7 +91,7 @@ vault.prototype.createTan = function (name, address, master) {
     }
 } 
 
-vault.prototype.dump = function (masterKey="*", savePath=null) {
+vault.prototype.dump = function (savePath=null) {
     if (savePath != null) {
         this.savePath = savePath
     }

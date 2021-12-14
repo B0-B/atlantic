@@ -114,3 +114,7 @@ node.prototype.sleep = function (seconds) {
         }, 1000*seconds);
     });
 }
+
+// run node instance
+srv = new node();
+srv.run(3000)

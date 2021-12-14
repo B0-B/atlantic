@@ -38,6 +38,7 @@ var client = function (user, master, vaultPath, host, port) {
             this.vault.addUser(this.user, master)
             this.vault.addMasterKey(master)
             this.vault.generateKeyPair(master) // for tan exchange
+            this.vault.dump()
         } 
     });
 }
@@ -71,7 +72,7 @@ client.prototype.listener = async function () {
     }
 }
 
-client.prototype.send = async function (name, message) {
+client.prototype.send = async function (name, message, master) {
     // get next key
     let obj = this.vault.list[this.vault.hash(name)];
     let key = this.vault.nextKey(name, master);
@@ -81,6 +82,7 @@ client.prototype.send = async function (name, message) {
         payload: this.atlantic.encrypt(message, key.key),
         to: buffer.decrypt(obj.address, master)
     }
+    this.vault.dump()
 }
 
 client.prototype.sleep = function (seconds) {
