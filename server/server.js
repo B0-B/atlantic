@@ -1,7 +1,13 @@
 const fs = require('fs');
 var path = require('path');
-const express = require('express');
 const bodyParser = require('body-parser');
+
+var http = require('http');
+var https = require('https');
+
+const express = require('express');
+// create a new key pair:
+// sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./selfsigned.key
 
 /*
 Official Atlantic node code.
@@ -11,10 +17,8 @@ var node = function () {
     this.conversations = {};
     this.kill = false;
     this.stack = {};
-    this.server = express();
-    this.boneCollector();
     this.build();
-    
+    this.boneCollector();
 }
 
 node.prototype.boneCollector = async function (refresh=60) {
@@ -42,9 +46,17 @@ node.prototype.build = function () {
     
     /* Build server structure */
 
+    this.app = express();
+    var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8');
+    var certificate = fs.readFileSync('sslcert/server.crt', 'utf8');
+    this.server = https.createServer({
+        key: privateKey,
+        cert: certificate
+    }, this.app);
+
     // ---- handshake path ----
-    this.server.use(bodyParser.json());
-    this.server.post('/handshake', async function (req, res) {
+    this.app.use(bodyParser.json());
+    this.app.post('/handshake', async function (req, res) {
         let rsp;
         try {
             const raw = req.body;
@@ -69,7 +81,7 @@ node.prototype.build = function () {
     });
 
     // ---- listener ----
-    this.server.post('/listen', async function (req, res) {
+    this.app.post('/listen', async function (req, res) {
         const raw = req.body;
         let stack = {errors: [], stack: []}
         try {
@@ -83,7 +95,7 @@ node.prototype.build = function () {
     });
 
     // ---- mail receive ----
-    this.server.post('/receiver', async function (req, res) {
+    this.app.post('/receiver', async function (req, res) {
         console.log(`receive msg addressed to ${msg.to}`)
         let rsp = {errors: []}
         try {
@@ -102,8 +114,8 @@ node.prototype.build = function () {
 }
 
 node.prototype.run = function (PORT) {
-    this.server.listen(PORT, function () {
-        console.log(`Atlantic node running at http://localhost:${PORT}`);
+    this.server.listen(PORT, () => {
+        console.log(`Atlantic node running at https://localhost:${PORT}`);
     });
 }
 
@@ -116,5 +128,5 @@ node.prototype.sleep = function (seconds) {
 }
 
 // run node instance
-srv = new node();
+var srv = new node();
 srv.run(3000)

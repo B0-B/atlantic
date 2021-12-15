@@ -6,6 +6,7 @@ const atlantic = require('./atlantic.js');
 // --- modules ---
 var path = require('path');
 const fs = require('fs');
+const fetch = require('node-fetch');
 
 var client = function (user, master, vaultPath, host, port) {
 
@@ -14,6 +15,7 @@ var client = function (user, master, vaultPath, host, port) {
     this.port = port;
     this.user = user;
     this.kill = false;
+    this.clearTime = 300; // seconds
     this.keyLength = 1024;
     this.messages = {};
     this.padLength = 4096;
@@ -64,9 +66,16 @@ client.prototype.listener = async function () {
                 //this.vault.addNewTan(obj, master)
             } else {
                 console.log(`received new message from ${obj.from}`)
+                obj.timestamp = Date.now();
+                // find the correct key
+                const atlantic_key = nextKey()
+                obj.payload = atlantic.decrypt(obj.payload, atlantic_key)
                 this.messages[obj.fp] = obj;
             }
-            
+        }
+        // save the updated vault state
+        if (data.stack.length != 0) {
+            this.vault.dump()
         }
         await this.sleep(.5);
     }
@@ -82,6 +91,12 @@ client.prototype.send = async function (name, message, master) {
         payload: this.atlantic.encrypt(message, key.key),
         to: buffer.decrypt(obj.address, master)
     }
+    try {
+        let response = await fetch(`https://${this.host}:${this.port}`, {method: "POST", body: JSON.stringify(msg)})
+        console.log(response.json().body)
+    } catch (error) {
+        console.log('error while sending message:', error)
+    }
     this.vault.dump()
 }
 
@@ -91,4 +106,13 @@ client.prototype.sleep = function (seconds) {
             resolve(0);
         }, 1000*seconds);
     });
+}
+
+// run node instance
+try {
+    var Client = new client("Alice", "abc123", "./vault.json", "localhost", 3000)
+} catch (error) {
+    console.log('Error - terminate\n', error)
+} finally {
+    Client.vault.dump()
 }
