@@ -6,7 +6,7 @@ const atlantic = require('./atlantic.js');
 // --- modules ---
 var path = require('path');
 const fs = require('fs');
-const fetch = require('node-fetch');
+const fetch = require('../node-fetch');
 
 var client = function (user, master, vaultPath, host, port) {
 
@@ -43,6 +43,9 @@ var client = function (user, master, vaultPath, host, port) {
             this.vault.dump()
         } 
     });
+
+    // -- start the listener -- 
+    this.listener()
 }
 
 client.prototype.connect = async function (host, port) {
@@ -53,7 +56,7 @@ client.prototype.connect = async function (host, port) {
 client.prototype.listener = async function () {
     while (!this.kill) {
         let pkg = JSON.stringify({address: this.vault.keyPair.public});
-        const response = await fetch(`https://${this.host}:${this.port}`, {method: 'POST', body: pkg});
+        const response = await fetch(`https://${this.host}:${this.port}/listen`, {method: 'POST', body: pkg});
         const data = await response.json();
         if (data.errors.length != 0) {
             console.log('error', data.errors[0])
