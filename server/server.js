@@ -47,8 +47,8 @@ node.prototype.build = function () {
     /* Build server structure */
 
     this.app = express();
-    var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8');
-    var certificate = fs.readFileSync('sslcert/server.crt', 'utf8');
+    var privateKey  = fs.readFileSync('./certificate/ssl.key', 'utf8');
+    var certificate = fs.readFileSync('./certificate/ssl.crt', 'utf8');
     this.server = https.createServer({
         key: privateKey,
         cert: certificate
