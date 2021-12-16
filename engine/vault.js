@@ -35,7 +35,7 @@ vault.prototype.addReceivedTan = function (user, tan) {
 } 
 
 vault.prototype.addNewTan = function (pkg, master) {
-    const priv = this.keyPair.private;
+    const priv = buffer.decrypt(this.keyPair.private, master);
     const user = crypto.publicDecrypt(priv, pkg.name);
     const address = crypto.publicDecrypt(priv, pkg.from);
     const fp = crypto.publicDecrypt(priv, pkg.fp);
@@ -44,7 +44,7 @@ vault.prototype.addNewTan = function (pkg, master) {
     let tan_keys = Object.keys(tan);
     for (let i = 0; i < tan_keys.length; i++) {
         let buf = tan[tan_keys[i]].buffer;
-        tan[tan_keys[i]].buffer = crypto.publicDecrypt(priv,buf);
+        tan[tan_keys[i]].buffer = buffer.encrypt(crypto.publicDecrypt(priv,buf), master);
     }
     // finalize package for list
     this.list[this.hash(user)] = {
@@ -56,7 +56,7 @@ vault.prototype.addNewTan = function (pkg, master) {
 
 vault.prototype.addUser = function (user, master) {
     // add personal user name of this client
-    this.userhash = this.encrypt(user, master);
+    this.userhash = buffer.encrypt(user, master);
     //let prv = buffer.decrypt(entry.addresshash,master);
 }
 
@@ -115,8 +115,8 @@ vault.prototype.generateKeyPair = function (master) {
     }, (err, publicKey, privateKey) => {
         if (err != null) {throw err}
         this.keyPair = {
-            public: publicKey,
-            private: privateKey
+            public: buffer.encrypt(publicKey, master),
+            private: buffer.encrypt(privateKey, master)
         }
     });
 }
@@ -170,10 +170,10 @@ vault.prototype.hash = function (name) {
 
 vault.prototype.ident = function (user, master) {
     try {
-        return buffer.decrypt(this.testPhraseEncrypted, master) == this.testPhrase &&
-            buffer.decrypt(this.userhash, master) == user
+        console.log('pass', buffer.decrypt(this.testPhraseEncrypted, master), buffer.decrypt(this.userhash, master)) 
+        return buffer.decrypt(this.testPhraseEncrypted, master) == this.testPhrase && buffer.decrypt(this.userhash, master) == user
     } catch (error) {
-        //console.log(error)
+        console.log(error)
         return false
     }
 }
@@ -182,13 +182,29 @@ vault.prototype.load = function (savePath) {
     let rawdata = fs.readFileSync(savePath, 'utf-8');
     let json = JSON.parse(rawdata);
     this.keyLength = json.keyLength;
+    this.keyPair = json.keyPair;
     this.list = json.list;
     this.savePath = savePath;
     this.tanSize = json.tanSize;
+    this.testPhraseEncrypted = json.testPhraseEncrypted;
+    this.userhash = json.userhash;
 }
 
-vault.prototype.nextKey = function (name, master) {
-    let tan = this.getTanByName(name);
+vault.prototype.nameFromFingerprint = function (name) {
+    let namehash = this.hash(name);
+    for (let i = 0; i < array.length; i++) {
+        const element = array[i];
+        
+    }
+}
+
+vault.prototype.nextKey = function (master, name=null, fp=null) {
+    let tan; 
+    if (name != null) {
+        tan = this.getTanByName(name);
+    } else if (fp != null) {
+        tan = this.getTanByFingerprint(fp);
+    }
     let nextID = Object.keys(tan)[0];
     const key_encrypted = this.restoreKey(name, nextID);
     this.burnKey(name, nextID);

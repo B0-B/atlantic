@@ -1,0 +1,1 @@
+{"algorithm":"aes-256-cbc","keyLength":1024,"keyPair":{},"list":{},"savePath":"./vault.json","tanSize":1000,"testPhrase":"atlantic","testPhraseEncrypted":{"iv":"7aeb9444958db4d252b12aa966d203fa","encryptedData":"3df6a8751e794d23a63ddb7bf9e54e34"},"userhash":{"iv":"b76e60609174e3367a5e6ab5101a3bf9","encryptedData":"2be97e4dbb7dee29fd1567108d97e3db"}}
