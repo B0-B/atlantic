@@ -55,27 +55,29 @@ client.prototype.connect = async function (host, port) {
             agent: this.httpsAgent,
         });
         const data = await response.json();
+        console.log(data)
         if (data.errors.length != 0) {
-            console.log('error', data.errors[0])
-        }
-        for (let i = 0; i < data.stack.length; i++) {
-            const obj = data.stack[i];
-            if ('tan' in obj) {
-                console.log(`received chat request from ${obj.from}`)
-                this.requests.push(obj);
-                //this.vault.addNewTan(obj, master)
-            } else {
-                console.log(`received new message from ${obj.from}`)
-                obj.timestamp = Date.now();
-                // find the correct key
-                const atlantic_key = this.vault.nextKey(master, fp=obj.fp)
-                obj.payload = atlantic.decrypt(obj.payload, atlantic_key.key)
-                this.messages[obj.fp] = obj;
+            console.log('error', data.errors)
+        } else {
+            for (let i = 0; i < data.stack.length; i++) {
+                const obj = data.stack[i];
+                if ('tan' in obj) {
+                    console.log(`received chat request from ${obj.from}`)
+                    this.requests.push(obj);
+                    //this.vault.addNewTan(obj, master)
+                } else {
+                    console.log(`received new message from ${obj.from}`)
+                    obj.timestamp = Date.now();
+                    // find the correct key
+                    const atlantic_key = this.vault.nextKey(master, fp=obj.fp)
+                    obj.payload = atlantic.decrypt(obj.payload, atlantic_key.key)
+                    this.messages[obj.fp] = obj;
+                }
             }
-        }
-        // save the updated vault state
-        if (data.stack.length != 0) {
-            this.vault.dump()
+            // save the updated vault state
+            if (data.stack.length != 0) {
+                this.vault.dump()
+            }
         }
         await this.sleep(.5);
     }
@@ -86,7 +88,6 @@ client.prototype.loadVault = async function (master) {
     if (fs.existsSync(this.vaultPath)) { 
         console.log('Vault found.')
         this.vault.load(this.vaultPath)
-        console.log(this.vault)
         if (!this.vault.ident(this.user, master)) {throw 'Wrong credentials provided for this vault.'}
         console.log('and loaded.')
     } else {
@@ -106,7 +107,8 @@ client.prototype.send = async function (name, message, master) {
         id: key.id,
         fp: obj.fingerprint,
         payload: this.atlantic.encrypt(message, key.key),
-        to: buffer.decrypt(obj.address, master)
+        to: buffer.decrypt(obj.address, master),
+        name: this.atlantic.encrypt(name, key.key)
     }
     try {
         let response = await fetch(`https://${this.host}:${this.port}`, {method: "POST", body: JSON.stringify(msg)})
