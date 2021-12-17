@@ -86,7 +86,7 @@ client.prototype.connect = async function (host, port) {
 client.prototype.loadVault = async function (master) {
     this.vault = new vault(this.keyLength, this.tanSize);
     if (fs.existsSync(this.vaultPath)) { 
-        console.log('Vault found.')
+        console.log('Vault found ...')
         this.vault.load(this.vaultPath)
         if (!this.vault.ident(this.user, master)) {throw 'Wrong credentials provided for this vault.'}
         console.log('and loaded.')
@@ -95,7 +95,9 @@ client.prototype.loadVault = async function (master) {
         this.vault.addUser(this.user, master)
         this.vault.addMasterKey(master)
         this.vault.generateKeyPair(master) // for tan exchange
+        console.log('dump created vault ...')
         this.vault.dump()
+        console.log('done.')
     }
 }
 

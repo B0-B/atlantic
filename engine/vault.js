@@ -115,7 +115,7 @@ vault.prototype.generateKeyPair = function (master) {
     }, (err, publicKey, privateKey) => {
         if (err != null) {throw err}
         this.keyPair = {
-            public: buffer.encrypt(publicKey, master),
+            public: publicKey,
             private: buffer.encrypt(privateKey, master)
         }
     });
@@ -170,7 +170,6 @@ vault.prototype.hash = function (name) {
 
 vault.prototype.ident = function (user, master) {
     try {
-        console.log('pass', buffer.decrypt(this.testPhraseEncrypted, master), buffer.decrypt(this.userhash, master)) 
         return buffer.decrypt(this.testPhraseEncrypted, master) == this.testPhrase && buffer.decrypt(this.userhash, master) == user
     } catch (error) {
         console.log(error)

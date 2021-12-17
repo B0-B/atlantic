@@ -1,23 +1,18 @@
 const fs = require('fs');
-var path = require('path');
 const bodyParser = require('body-parser');
-
-var http = require('http');
 var https = require('https');
-
 const express = require('express');
-// create a new key pair:
-// sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./selfsigned.key
 
 /*
 Official Atlantic node code.
 */
 
+const PORT = 3000;
+
 var node = function () {
     this.conversations = {};
     this.kill = false;
     this.stack = {};
-    this.build();
     this.boneCollector();
 }
 
@@ -42,21 +37,24 @@ node.prototype.boneCollector = async function (refresh=60) {
     }
 }
 
-node.prototype.build = function () {
+node.prototype.sleep = function (seconds) {
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            resolve(0);
+        }, 1000*seconds);
+    });
+}
+
+// --- node build blueprint ---
+async function build (node) {
     
-    /* Build server structure */
+    /* Build node application structure */
 
-    this.app = express();
-    var privateKey  = fs.readFileSync('./certificate/ssl.key', 'utf8');
-    var certificate = fs.readFileSync('./certificate/ssl.crt', 'utf8');
-    this.server = https.createServer({
-        key: privateKey,
-        cert: certificate
-    }, this.app);
-
+    app = express();
+    
     // ---- handshake path ----
-    this.app.use(bodyParser.json());
-    this.app.post('/handshake', async function (req, res) {
+    app.use(bodyParser.json());
+    app.post('/handshake', async function (req, res) {
         let rsp;
         try {
             const raw = req.body;
@@ -68,9 +66,9 @@ node.prototype.build = function () {
                 fp: raw.fingerprint
             }
             try {
-                this.stack[raw.to].stack.push(pkg)
+                clinet.stack[raw.to].stack.push(pkg)
             } catch (error) {
-                this.stack[raw.to] = {stack: [pkg]}
+                node.stack[raw.to] = {stack: [pkg]}
             }
             rsp = {errors: []}
         } catch (error) {
@@ -81,29 +79,32 @@ node.prototype.build = function () {
     });
 
     // ---- listener ----
-    this.app.post('/listen', async function (req, res) {
+    app.post('/listen', async function (req, res) {
         const raw = req.body;
         let stack = {errors: [], stack: []}
         try {
-            stack.stack = JSON.parse(JSON.stringify(this.stack[raw.address]))
-            delete this.stack[raw.address]
+            if (node.stack.hasOwnProperty(raw.address)) {
+                stack.stack = JSON.parse(JSON.stringify(node.stack[raw.address]))
+                delete node.stack[raw.address]
+            }
         } catch (error) {
+            console.log('listen error:', error)
             stack.errors.push(error)
         }
         res.send(JSON.stringify(stack))
-        console.log(`${msg.to} is up to date.`)
+        console.log(`${raw.address.split('\n')[1]}... is up to date.`)
     });
 
     // ---- mail receive ----
-    this.app.post('/receiver', async function (req, res) {
+    app.post('/receiver', async function (req, res) {
         console.log(`receive msg addressed to ${msg.to}`)
         let rsp = {errors: []}
         try {
             const msg = req.body;
             try {
-                this.stack[msg.to].stack.push(msg)
+                node.stack[msg.to].stack.push(msg)
             } catch (error) {
-                this.stack[msg.to] = {stack: [msg]}
+                node.stack[msg.to] = {stack: [msg]}
             }
         } catch (error) {
             rsp.errors.push(error)
@@ -111,22 +112,23 @@ node.prototype.build = function () {
             res.send(JSON.stringify(rsp))
         }
     });
-}
 
-node.prototype.run = function (PORT) {
-    this.server.listen(PORT, () => {
-        console.log(`Atlantic node running at https://localhost:${PORT}`);
-    });
-}
+    // wrap https server
+    privateKey  = fs.readFileSync('./certificate/ssl.key', 'utf8');
+    certificate = fs.readFileSync('./certificate/ssl.crt', 'utf8');
+    server = https.createServer({
+        key: privateKey,
+        cert: certificate
+    }, app);
 
-node.prototype.sleep = function (seconds) {
-    return new Promise(function(resolve) {
-        setTimeout(function() {
-            resolve(0);
-        }, 1000*seconds);
-    });
+    return server
 }
 
 // run node instance
-var srv = new node();
-srv.run(3000)
+(async () => {
+    var _node = new node();
+    var server = await build(_node);
+    server.listen(PORT, () => {
+        console.log(`Atlantic node running at https://localhost:${PORT}`);
+    });
+})();
