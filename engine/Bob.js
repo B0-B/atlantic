@@ -95,6 +95,7 @@ client.prototype.loadVault = async function (master, dump=true) {
         this.vault.addUser(this.user, master)
         this.vault.addMasterKey(master)
         await this.vault.generateKeyPair(master) // for tan exchange
+        await this.vault.generateAddress()
         if (dump) {
             console.log('dump created vault ...')
             this.vault.dump(this.vaultPath)
@@ -112,6 +113,7 @@ client.prototype.newContact = async function (name, address, master) {
     } catch (error) {
         console.log('error while sending message:', error)
     }
+
 }
 
 client.prototype.send = async function (name, message, master) {
@@ -144,13 +146,14 @@ client.prototype.sleep = function (seconds) {
 
 // run node instance
 async function createInstance () {
-    let User = "dummy",
+    let User = "Bob",
         master = "123456",
-        vaultPath = "./vault.json";
+        vaultPath = "./vault_bob.json";
     var Client = new client(User, master, vaultPath);
+    
 
     // wire the vault
-    await Client.loadVault(master);
+    await Client.loadVault(master, dump=true);
 
     // start the server test wise
     Client.connect("localhost", 3000)
@@ -167,10 +170,11 @@ async function run () {
         // await Client.sleep(3)
         // Client.vault.createTan("Angel", "Address-pseudo", "1234")
         // Client.vault.dump()
+        console.log('address:', buffer.decrypt(Client.vault.address, "123456"))
     } catch (error) {
         console.log('Error - terminate\n', error)
     } finally {
-        Client.vault.dump()
+        //
     }
 }
 

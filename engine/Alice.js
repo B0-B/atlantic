@@ -112,6 +112,7 @@ client.prototype.newContact = async function (name, address, master) {
     } catch (error) {
         console.log('error while sending message:', error)
     }
+
 }
 
 client.prototype.send = async function (name, message, master) {
@@ -144,13 +145,13 @@ client.prototype.sleep = function (seconds) {
 
 // run node instance
 async function createInstance () {
-    let User = "dummy",
-        master = "123456",
-        vaultPath = "./vault.json";
+    let User = "Alice",
+        master = "12345",
+        vaultPath = "./vault_alice.json";
     var Client = new client(User, master, vaultPath);
 
     // wire the vault
-    await Client.loadVault(master);
+    await Client.loadVault(master, dump=true);
 
     // start the server test wise
     Client.connect("localhost", 3000)
@@ -160,17 +161,14 @@ async function createInstance () {
     return Client
 }
 
-
 async function run () {
     try {
         var Client = await createInstance();
-        // await Client.sleep(3)
-        // Client.vault.createTan("Angel", "Address-pseudo", "1234")
-        // Client.vault.dump()
+        Client.newContact("bob", "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAsTP1c7+WojEleyg+jsxH\nJOaj3UQi13F/p1XV0htPAQdUnQ6gDN+pX5Az5pCRxlfwAR+uvNZlcwi8HN7eHB2r\nmiKh1x9yHpSmevZLHD+yVvfo4aROZ9Mds4kcoNuSPgsr8HPCH4kSmys4rGm4xO3Z\nJXVGzErSktwf8iZNT/fTd494ORUzqA/sShysLbSZwimgh+lzVxG4fzub4We6bC5f\nfBuoC3UCBMJcggGolfEDSWEY3Mn4RcIweUU8cv59BY/G7ug3tDd5gOZ5RrOfuAEK\nadqLC1D2Y+nRcNYedG6/0oNxr5Q7Yd9bBPjQ8SC6X18a+a+ig40Zie923ZbdZgAK\nkeXM2E2SOYu+T4yFPMdTJB+u5n9ml45tkpSOluOlBapN5nPWcVD5mWPfvfIk6MWc\nOzOftrABmDnfWvIY02bm3JWCXoiykM/RSi0AMKsVdLuTJntE+5y1EHZ+AMBGh2aM\n4+UcqC3qlNC+lqbtYy/NnBixOyJReju8BR0QoYYDHaSSH4S8qmCVpn68zbD46HYH\nOmA9xhZX109plhhpn2zL0ayf+cjp58CNQnooqiWcOFeu45M8t+8PhPsRl81GEtQZ\nqO32wwPLTti1+4JJxxOd+fTx1atLwPeGMVRXxGi1duknZPPOnblpf6tesKfxfh5V\nxJqN1w50c3fY2Y5Q68IjEjUCAwEAAQ==\n-----END PUBLIC KEY-----\n", "12345");
     } catch (error) {
-        console.log('Error - terminate\n', error)
+        console.log('Error - terminate\n', error);
     } finally {
-        Client.vault.dump()
+        //
     }
 }
 

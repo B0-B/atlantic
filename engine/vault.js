@@ -5,15 +5,15 @@ const fs = require('fs');
 const buffer = require('./buffer.js');
 
 var vault = function (keyLength=4096, tanSize=100) {
-    this.algorithm = 'aes-256-cbc'
+    this.algorithm = 'aes-256-cbc';
     this.keyLength = keyLength;
     this.keyPair = {};
     this.list = {};
     this.savePath = './vault.json';
     this.tanSize = tanSize;
-    this.testPhrase = 'atlantic'
-    this.testPhraseEncrypted = null
-    this.userhash = ''
+    this.testPhrase = 'atlantic';
+    this.testPhraseEncrypted = null;
+    this.userhash = '';
 }
 
 vault.prototype.addMasterKey = function (master, masterOld=null) {
@@ -27,12 +27,6 @@ vault.prototype.addMasterKey = function (master, masterOld=null) {
         }
     }
 }
-
-vault.prototype.addReceivedTan = function (user, tan) {
-    // Will add a provided tan to specific user hash. If a tan already exists for this hash, it will be overridden.
-    userhash = this.hash(user);
-    this.list[userhash] = tan
-} 
 
 vault.prototype.addNewTan = function (pkg, master) {
     const priv = buffer.decrypt(this.keyPair.private, master);
@@ -56,8 +50,8 @@ vault.prototype.addNewTan = function (pkg, master) {
 
 vault.prototype.addUser = function (user, master) {
     // add personal user name of this client
+    console.log('encrypt user name ...');
     this.userhash = buffer.encrypt(user, master);
-    //let prv = buffer.decrypt(entry.addresshash,master);
 }
 
 vault.prototype.burnKey = function (user, id) {
@@ -77,7 +71,7 @@ vault.prototype.checkMaster = function (master) {
     }
 }
 
-vault.prototype.createTan = function (name, address, master) {
+vault.prototype.createTan = async function (name, address, master) {
     let fingerprint = this.randomHash(),
         userhash = this.hash(name),
         addresshash = buffer.encrypt(address, master)
@@ -98,27 +92,32 @@ vault.prototype.dump = function (savePath=null) {
     fs.writeFileSync(this.savePath, JSON.stringify(this) , 'utf-8');
 }
 
-vault.prototype.generateKeyPair = function (master) {
+vault.prototype.generateKeyPair = async function (master) {
+
     // generate rsa key pair in pem format
     const keyPair = crypto.generateKeyPair('rsa', {
         modulusLength: 4096,
         publicKeyEncoding: {
-          type: 'spki',
-          format: 'pem'
+        type: 'spki',
+        format: 'pem'
         },
         privateKeyEncoding: {
-          type: 'pkcs8',
-          format: 'pem',
-          cipher: this.algorithm,
-          passphrase: master
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: this.algorithm,
+        passphrase: master
         }
     }, (err, publicKey, privateKey) => {
-        if (err != null) {throw err}
+        if (err != null) {
+            console.log(err);
+        }
         this.keyPair = {
             public: publicKey,
             private: buffer.encrypt(privateKey, master)
         }
     });
+    // time buffer as awaited promise approach is causing dumps
+    await this.sleep(1.5);
 }
 
 vault.prototype.getTanByFingerprint = function (fingerprint) {
@@ -142,7 +141,7 @@ vault.prototype.getTanByName = function (name) {
     }
 }
 
-vault.prototype.handshakePackage = function (name, master) {
+vault.prototype.handshakePackage = async function (name, master) {
     /* Decrypt the list entry and encrypt again with the address.
     The address is the receivers public key.
     */
@@ -219,6 +218,14 @@ vault.prototype.restoreKey = function (name, id) {
     let k = new key(this.keyLength)
     k.buffer = this.list[v.hash(name)]['tan'][`${id}`]['buffer']
     return k
+}
+
+vault.prototype.sleep = function (seconds) {
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            resolve(0);
+        }, 1000*seconds);
+    });
 }
 
 module.exports = vault;
